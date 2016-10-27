@@ -37,18 +37,34 @@ int main(int argc, char *argv[])
 	|  mov  PTR, rdi      // rdi store 1st argument
 
 	for (char *p = read_file(argv[1]); *p; p++) {
+		unsigned int count = 1;//count at least be 1 because read an sym first
 		switch (*p) {
 		case '>':
-			|  inc  PTR
+
+			while(*(++p) == '>')
+				count++;
+			p--;
+			|  add  PTR, count
 			break;
 		case '<':
-			|  dec  PTR
+			while(*(++p) == '<')
+				count++;
+			p--;
+			|  sub  PTR, count
 			break;
 		case '+':
-			|  inc  byte [PTR]
+
+			while(*(++p) == '+')
+				count++;
+			p--;
+			|  add  byte [PTR], count
 			break;
 		case '-':
-			|  dec  byte [PTR]
+
+			while(*(++p) == '-')
+				count++;
+			p--;
+			|  sub  byte [PTR], count
 			break;
 		case '.':
 			|  movzx edi, byte [PTR]
@@ -58,18 +74,58 @@ int main(int argc, char *argv[])
 			|  callp getchar
 			|  mov   byte [PTR], al
 			break;
+
 		case '[':
 			if (top == limit) err("Nesting too deep.");
 			// Each loop gets two pclabels: at the beginning and end.
 			// We store pclabel offsets in a stack to link the loop
 			// begin and end together.
-			maxpc += 2;
+
+			//[-]
+			if( *(p+1) == '-' && *(p+2) == ']'){
+				p += 2;
+				|	mov   byte [PTR], 0
+				break;
+			}
+
+			//[->+<]
+			//add val of first cell() to second cell
+			if( *(p+1) == '-' && *(p+2) == '>' && *(p+3)=='+' && *(p+4) == '<' && *(p+5) == ']'){
+				p += 5;
+				|  mov  al, byte[PTR] 
+				|  add  byte[PTR+1], al
+				|  mov  byte[PTR], 0
+				break;
+			}
+/*
+			//[->>...+...<<]
+			if( *(p+1) == '-' && *(p+2) == '>'){
+				unsigned int countsym = 1;
+				int n = 3;
+				while( *(p + n) == '>'){
+					countsym++;
+					n++;
+				}
+				
+				if( *(p+2+countsym+1) == '+' && *(p + 2*countsym + 3) == ']'){
+					p = p + 3 + 2 * countsym;
+					|  mov al, byte[PTR]
+					|  add byte[PTR + countsym], al
+					|  mov byte[PTR], 0
+					break;
+				}
+			}
+
+*/
+			
+			maxpc += 2; 
 			*top++ = maxpc;
 			dasm_growpc(&state, maxpc);
 			|  cmp  byte [PTR], 0
 			|  je   =>(maxpc-2)
 			|=>(maxpc-1):
 			break;
+
 		case ']':
 			if (top == pcstack) err("Unmatched ']'");
 			top--;

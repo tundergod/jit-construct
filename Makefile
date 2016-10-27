@@ -44,6 +44,7 @@ jit-x86: dynasm-driver.c jit-x86.h
 		dynasm-driver.c -m32
 jit-x86.h: jit-x86.dasc
 	        $(LUA) dynasm/dynasm.lua -o $@ jit-x86.dasc
+
 run-jit-x86: jit-x86
 	./jit-x86 progs/hello.b && objdump -D -b binary \
 		-mi386 -Mx86 /tmp/jitcode
@@ -51,8 +52,10 @@ run-jit-x86: jit-x86
 jit-x64: dynasm-driver.c jit-x64.h
 	$(CC) $(CFLAGS) -o $@ -DJIT=\"jit-x64.h\" \
 		dynasm-driver.c
+
 jit-x64.h: jit-x64.dasc
 	        $(LUA) dynasm/dynasm.lua -o $@ jit-x64.dasc
+
 run-jit-x64: jit-x64
 	./jit-x64 progs/hello.b && objdump -D -b binary \
 		-mi386 -Mx86-64 /tmp/jitcode
@@ -63,8 +66,10 @@ jit0-arm: tests/jit0-arm.c
 jit-arm: dynasm-driver.c jit-arm.h
 	$(CROSS_COMPILE)gcc $(CFLAGS) -o $@ -DJIT=\"jit-arm.h\" \
 		dynasm-driver.c
+
 jit-arm.h: jit-arm.dasc
 	$(LUA) dynasm/dynasm.lua -o $@ jit-arm.dasc
+
 run-jit-arm: jit-arm
 	$(QEMU_ARM) jit-arm progs/hello.b && \
 	$(CROSS_COMPILE)objdump -D -b binary -marm /tmp/jitcode
